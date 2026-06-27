@@ -5,11 +5,8 @@ const cors = require("cors");
 const app = express();
 
 app.use(cors({
-   origin: [
-        "http://localhost:5173",
-        "https://your-vercel-domain.vercel.app"
-    ],
-    credentials: true
+    origin: process.env.CLIENT_URL,
+    credentials: true,
 }));
 app.use(express.json());
 app.use(cookieParser());
