@@ -3,7 +3,8 @@ const mongoose = require("mongoose");
 
 const createInterview = async (req, res) => {
   try {
-    const { company, role, status, appliedDate, notes } = req.body;
+    // 1. Destructure resumePath straight from req.body strings payload
+    const { company, role, status, appliedDate, notes, taskDate, reminderSent, resumePath } = req.body;
 
     const interview = await Interview.create({
       company,
@@ -11,21 +12,21 @@ const createInterview = async (req, res) => {
       status,
       appliedDate,
       notes,
+      taskDate: taskDate || null,
+      reminderSent: reminderSent || false,
+      resumePath: resumePath || "", // <-- Links the chosen repository string path
       user: req.user.id,
+      history: [{
+        status: status || "Applied",
+        notesSnapshot: "Application record initialized on workspace.",
+        changedAt: new Date()
+      }]
     });
 
-    res.status(201).json({
-      success: true,
-      message: "Interview created successfully",
-      interview,
-    });
+    res.status(201).json({ success: true, message: "Interview created successfully", interview });
   } catch (error) {
     console.log(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Server Error",
-    });
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
@@ -118,45 +119,44 @@ const getInterviewById = async (req, res) => {
 
 const updateInterview = async (req, res) => {
   try {
-    const { company, role, status, appliedDate, notes } = req.body;
+    const { company, role, status, appliedDate, notes, taskDate, reminderSent, resumePath } = req.body;
 
-    const interview = await Interview.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        user: req.user.id,
-      },
-      {
-        company,
-        role,
-        status,
-        appliedDate,
-        notes,
-      },
-      {
-        new: true,
-        runValidators: true,
-      },
-    );
-
-    if (!interview) {
-      return res.status(404).json({
-        success: false,
-        message: "Interview not found",
-      });
+    const currentRecord = await Interview.findOne({ _id: req.params.id, user: req.user.id });
+    if (!currentRecord) {
+      return res.status(404).json({ success: false, message: "Interview not found" });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Interview updated successfully",
-      interview,
-    });
-  } catch (error) {
-    console.log(error);
+    const updates = { company, role, status, appliedDate, notes, taskDate, reminderSent, resumePath };
 
-    res.status(500).json({
-      success: false,
-      message: "Server Error",
-    });
+    // Initialize history array if it doesn't exist on older documents
+    if (!currentRecord.history) {
+      currentRecord.history = [];
+    }
+
+    // Capture state transitions cleanly with empty string safety checks
+    if (currentRecord.status !== status) {
+      const snapshotText = notes && notes.trim() !== "" 
+        ? `${notes.replace(/[#*`\n]/g, " ").slice(0, 50)}...` 
+        : "Status milestone moved.";
+
+      currentRecord.history.push({
+        status: status,
+        notesSnapshot: snapshotText,
+        changedAt: new Date()
+      });
+      updates.history = currentRecord.history;
+    }
+
+    const interview = await Interview.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      updates,
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({ success: true, message: "Interview updated successfully", interview });
+  } catch (error) {
+    console.log("❌ Update validation error details:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 

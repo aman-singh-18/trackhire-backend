@@ -151,6 +151,70 @@ const logout = (req, res) => {
 
 };
 
+const uploadResumeToPool = async (req, res) => {
+    try {
+        const { title } = req.body;
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: "Please attach a valid file" });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User session expired" });
+        }
+
+        // Push new file parameters directly into the user's subdocument array bucket
+        user.resumes.push({
+            title: title || `Resume-${user.resumes.length + 1}`,
+            filePath: req.file.path
+        });
+
+        await user.save();
+        return res.status(200).json({ success: true, message: "Resume added to your profile bank", resumes: user.resumes });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Server Error" });
+    }
+};
+
+const getResumePool = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select("resumes");
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+        return res.status(200).json({ success: true, resumes: user.resumes });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Server Error" });
+    }
+};
+
+const deleteResumeFromPool = async (req, res) => {
+    try {
+        const { resumeId } = req.params;
+
+        // $pull atomically removes an object from an array matching a specific criteria
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            { $pull: { resumes: { _id: resumeId } } },
+            { new: true }
+        ).select("resumes");
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        return res.status(200).json({ 
+            success: true, 
+            message: "Resume removed from your repository pool", 
+            resumes: user.resumes 
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Server Error" });
+    }
+};
+
+
+
 module.exports = {
-  signup,login,getProfile,logout,
+  signup,login,getProfile,logout,uploadResumeToPool, getResumePool,deleteResumeFromPool
 };

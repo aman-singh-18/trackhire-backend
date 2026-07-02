@@ -19,6 +19,14 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    // --- NEW MULTIPLE RESUMES ARRAY STORAGE ADDED BELOW ---
+    resumes: [
+        {
+            title: { type: String, required: true },
+            filePath: { type: String, required: true },
+            uploadedAt: { type: Date, default: Date.now }
+        }
+    ]
 },
 {
     timestamps: true,

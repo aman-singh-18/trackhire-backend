@@ -43,6 +43,31 @@ const interviewSchema = new mongoose.Schema({
       ref: "User",
       required: true,
     },
+
+    // --- NEW TASK SCHEDULER FIELDS TO ADD BELOW ---
+    taskDate: {
+      type: Date,
+      default: null // Defaults to null because not every application has an active task yet
+    },
+
+    reminderSent: {
+      type: Boolean,
+      default: false // Defaults to false until the automatic backend worker flips it
+    },
+// --- NEW RESUME FILE PATH FIELD ADDED BELOW ---
+resumePath: {
+  type: String,
+  default: "", // Stores the relative URL path destination to your saved local file
+},
+
+    history: [
+      {
+        status: { type: String, required: true },
+        notesSnapshot: { type: String, default: "" },
+        changedAt: { type: Date, default: Date.now }
+      }
+    ]
+
   },
   {
     timestamps: true,
