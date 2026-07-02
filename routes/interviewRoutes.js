@@ -2,9 +2,6 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 
-// --- IMPORT YOUR NEW MULTER MIDDLEWARE ENGINE ---
-const upload = require("../middleware/uploadMiddleware");
-
 const { 
   createInterview,
   getAllInterviews,
@@ -16,7 +13,10 @@ const {
 
 const { getAnalytics } = require("../controllers/getAnalytics");
 
-// Injects the upload middleware right between auth checking and data storage execution
+// --- ADD THIS LINE BACK TO HANDLE CREATING ENTRIES ---
+router.post("/", authMiddleware, createInterview);
+
+// Existing active endpoints
 router.get("/", authMiddleware, getAllInterviews);
 router.get("/stats", authMiddleware, getInterviewStats);
 router.get("/analytics", authMiddleware, getAnalytics);
